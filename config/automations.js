@@ -87,8 +87,9 @@ export const automationConfig = {
     jervisAccessStartTime: "15:00:00",
     jervisAccessEndTime: "11:00:00",
     accessWindowOverrides: [
-      // Men's retreat, Nov 4–8 2026: codes work from 11 AM on arrival day.
-      { checkinDate: "2026-11-04", accessStartTime: "11:00:00", checkinTimeLabel: "11:00 a.m." },
+      // Men's retreat, Nov 4–8 2026: codes work from 11 AM so guests can enter
+      // early when cleaning allows; messages still say the standard 3 PM check-in.
+      { checkinDate: "2026-11-04", accessStartTime: "11:00:00" },
     ],
     propertyMessageData: {
       "Sky Castle": {
