@@ -9,6 +9,12 @@ const DEFAULT_LIST_ID =
   PROMOTION_CONTACT_LISTS[0]?.listId ||
   "";
 
+const AUDIENCE_FILTERS = [
+  { value: "all", label: "Everyone on the list" },
+  { value: "past-guests", label: "Only past guests" },
+  { value: "not-past-guests", label: "Skip past guests" },
+];
+
 const CHANNELS = [
   { value: "email", label: "Email" },
   { value: "sms", label: "SMS" },
@@ -90,6 +96,12 @@ export default function OneOffPromotionsPanel({ onComplete }) {
   const [channel, setChannel] = useState("sms");
   const [templateId, setTemplateId] = useState("");
   const [smsBody, setSmsBody] = useState("");
+  const [audienceFilter, setAudienceFilter] = useState("all");
+  const [templateName, setTemplateName] = useState("");
+  const [templateSubject, setTemplateSubject] = useState("");
+  const [templateHtml, setTemplateHtml] = useState("");
+  const [templateStatus, setTemplateStatus] = useState("");
+  const [creatingTemplate, setCreatingTemplate] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [testSms, setTestSms] = useState("");
   const [testMode, setTestMode] = useState("dryRun");
@@ -132,6 +144,7 @@ export default function OneOffPromotionsPanel({ onComplete }) {
           channel,
           templateId,
           smsBody,
+          audienceFilter,
           testDestinations: {
             email: testEmail,
             sms: testSms,
@@ -153,6 +166,26 @@ export default function OneOffPromotionsPanel({ onComplete }) {
       setError(err.message || "Promotion request failed.");
     } finally {
       setRunning("");
+    }
+  }
+
+  async function createTemplate() {
+    setCreatingTemplate(true);
+    setTemplateStatus("");
+    try {
+      const res = await fetch("/api/promotions/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: templateName, subject: templateSubject, html: templateHtml }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Template create failed.");
+      setTemplateId(data.templateId);
+      setTemplateStatus(`Created template ${data.templateId}`);
+    } catch (err) {
+      setTemplateStatus(err.message || "Template create failed.");
+    } finally {
+      setCreatingTemplate(false);
     }
   }
 
@@ -191,6 +224,23 @@ export default function OneOffPromotionsPanel({ onComplete }) {
         </div>
 
         <div>
+          <FieldLabel>Past guests</FieldLabel>
+          <select
+            value={audienceFilter}
+            onChange={(e) => setAudienceFilter(e.target.value)}
+            aria-label="Past guests filter"
+            className="border border-sand rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-grove/30"
+          >
+            {AUDIENCE_FILTERS.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
+          <p className="text-xs text-forest/40 mt-1">
+            Past guests are people with a non-cancelled Lodgify stay that has started.
+          </p>
+        </div>
+
+        <div>
           <FieldLabel>Channel</FieldLabel>
           <div className="grid grid-cols-3 rounded-lg border border-sand p-1">
             {CHANNELS.map((item) => (
@@ -226,6 +276,46 @@ export default function OneOffPromotionsPanel({ onComplete }) {
             <p className="text-xs text-forest/40 mt-1">
               Subject and body are defined inside the SendGrid dynamic template. Click the info icon to see the supported variables.
             </p>
+            <details className="mt-3 rounded-lg border border-sand p-3">
+              <summary className="cursor-pointer text-sm text-forest">Create a template from HTML</summary>
+              <div className="mt-3 space-y-3">
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="Template name"
+                  aria-label="Template name"
+                  className="border border-sand rounded-lg px-3 py-2 text-sm w-full"
+                />
+                <input
+                  type="text"
+                  value={templateSubject}
+                  onChange={(e) => setTemplateSubject(e.target.value)}
+                  placeholder="Email subject"
+                  aria-label="Email subject"
+                  className="border border-sand rounded-lg px-3 py-2 text-sm w-full"
+                />
+                <textarea
+                  rows={6}
+                  value={templateHtml}
+                  onChange={(e) => setTemplateHtml(e.target.value)}
+                  placeholder="Paste the email HTML"
+                  aria-label="Email HTML"
+                  className="border border-sand rounded-lg px-3 py-2 text-xs w-full font-mono"
+                />
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={creatingTemplate || !templateName.trim() || !templateSubject.trim() || !templateHtml.trim()}
+                    onClick={createTemplate}
+                    className="rounded-full bg-grove px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                  >
+                    {creatingTemplate ? "Creating…" : "Create template"}
+                  </button>
+                  {templateStatus ? <span className="text-xs text-forest/60">{templateStatus}</span> : null}
+                </div>
+              </div>
+            </details>
           </div>
         ) : null}
 

@@ -4,6 +4,8 @@ import { getConfig } from "@/lib/kv";
 import { appendLogs, writeLastRunStatus } from "@/lib/activity-log";
 import { runOneOffPromotion } from "@/lib/promotions";
 
+export const maxDuration = 300;
+
 export async function POST(request) {
   const unauthorized = await requireAdminRequest(request);
   if (unauthorized) return unauthorized;
@@ -21,6 +23,7 @@ export async function POST(request) {
       templateId: body?.templateId,
       smsBody: body?.smsBody,
       testDestinations: body?.testDestinations,
+      audienceFilter: body?.audienceFilter,
     });
 
     const icon = (status) =>
