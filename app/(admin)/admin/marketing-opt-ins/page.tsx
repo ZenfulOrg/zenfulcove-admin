@@ -15,8 +15,8 @@ export default function MarketingOptInsPage() {
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--color-ink-muted)]">
           Sets up the SendGrid &ldquo;Email Offers&rdquo; and &ldquo;Text Club&rdquo; lists and adds
-          everyone eligible. Email Offers: every past guest plus check-in form submitters (OTA relay
-          addresses excluded). Text Club: only people with a recorded text opt-in. Check-in form
+          everyone eligible. Email Offers: past guests, every form and the popup, with bots and OTA relay
+          addresses filtered out. Text Club: check-in form text opt-ins plus every popup contact with a phone number (the popup required a text opt-in). Check-in form
           opt-ins are added automatically after setup. Re-running is safe.
         </p>
       </header>
