@@ -1,13 +1,27 @@
 import { NextResponse } from "next/server";
 import { requireAdminRequest } from "@/lib/adminAuth";
 import { getMarketingOptInLists } from "@/lib/kv";
-import { runMarketingOptInSetup } from "@/lib/marketing-opt-in-setup";
+import {
+  getLastBackfillImportResults,
+  runMarketingOptInSetup,
+} from "@/lib/marketing-opt-in-setup";
 
 export const maxDuration = 300;
 
 export async function GET(request) {
   const unauthorized = await requireAdminRequest(request);
   if (unauthorized) return unauthorized;
+  const url = new URL(request.url);
+  if (url.searchParams.get("imports") === "1") {
+    try {
+      return NextResponse.json(await getLastBackfillImportResults());
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Import lookup failed" },
+        { status: 500 }
+      );
+    }
+  }
   return NextResponse.json(await getMarketingOptInLists());
 }
 
