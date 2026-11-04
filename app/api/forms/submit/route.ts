@@ -16,6 +16,11 @@ import {
   validateLocalFormUpload,
 } from "@/lib/local-forms";
 import { maybeSendSameDayAccessCodeForSubmission } from "@/lib/access-code-messages";
+import {
+  buildMarketingConsentRecord,
+  formShowsMarketingConsent,
+} from "@/lib/marketing-consent";
+import { syncMarketingConsentToSendGrid } from "@/lib/marketing-consent-sync";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ACCESS_CODE_BACKGROUND_RETRY_DELAYS_MS = [
@@ -431,6 +436,28 @@ export async function POST(request: Request) {
     }
   }
 
+  // Consent is recorded by the server only; never trust a client-sent record.
+  delete parsed.payload.__marketingConsent;
+  const marketingConsent =
+    !isTrustedPreview &&
+    formShowsMarketingConsent(
+      resolvedFormSlug,
+      form.schema && typeof form.schema === "object"
+        ? (form.schema as { marketingConsent?: unknown })
+        : null
+    )
+      ? buildMarketingConsentRecord({
+          payload: parsed.payload,
+          contact,
+          recordedAt: submittedAt,
+          ip:
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+            request.headers.get("x-real-ip") ||
+            "",
+          userAgent: request.headers.get("user-agent") || "",
+        })
+      : null;
+
   const submissionPayload = isTrustedPreview
     ? {
         ...existingPayload,
@@ -441,6 +468,7 @@ export async function POST(request: Request) {
     : {
         ...existingPayload,
         ...parsed.payload,
+        ...(marketingConsent ? { __marketingConsent: marketingConsent } : {}),
       };
 
   let submission: { id: string; form_slug: string; submitted_at: string };
@@ -524,6 +552,42 @@ export async function POST(request: Request) {
 
   if (isTrustedPreview) {
     await markLocalFormSubmissionsSynced([submission.id]);
+  }
+
+  if (
+    marketingConsent &&
+    (marketingConsent.sms.optedIn || marketingConsent.email.optedIn)
+  ) {
+    after(async () => {
+      try {
+        const results = await syncMarketingConsentToSendGrid({
+          consent: marketingConsent,
+          contact,
+        });
+        await recordSubmitLog({
+          status: "info",
+          action: `Marketing opt-in recorded (SMS: ${
+            marketingConsent.sms.optedIn ? "yes" : "no"
+          }, email: ${marketingConsent.email.optedIn ? "yes" : "no"}): ${results.join("; ")}.`,
+          formSlug: resolvedFormSlug,
+          parsed,
+          contact,
+          submissionId: submission.id,
+        });
+      } catch (err) {
+        await recordSubmitLog({
+          status: "failed",
+          action: `Marketing opt-in saved, but SendGrid sync failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+          formSlug: resolvedFormSlug,
+          parsed,
+          contact,
+          submissionId: submission.id,
+          error: err,
+        });
+      }
+    });
   }
 
   if (!isTrustedPreview) {
