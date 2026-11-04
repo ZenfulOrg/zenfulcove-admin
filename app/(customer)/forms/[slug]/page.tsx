@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { hasAdminSessionCookie } from "@/lib/adminAuth";
 import LocalForm from "@/components/customer/LocalForm";
 import { hasSupabaseAdminEnv } from "@/lib/supabaseEnv";
+import { formShowsMarketingConsent } from "@/lib/marketing-consent";
 import {
   findLocalFormSubmissionForBooking,
   getLocalFormBySlug,
@@ -25,6 +26,7 @@ type LocalFormSchema = {
   subtitle?: string;
   introText?: string;
   termsText?: string;
+  marketingConsent?: boolean;
   submitLabel?: string;
   successMessage?: string;
 };
@@ -137,6 +139,7 @@ export default async function LocalFormPage({
         existingFiles={existingFiles}
         bookingCode={bookingCode}
         returnHref={returnHref}
+        showMarketingConsent={formShowsMarketingConsent(form.slug, schema)}
       />
     </div>
   );

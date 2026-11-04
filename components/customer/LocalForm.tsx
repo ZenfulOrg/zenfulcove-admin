@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { optionsForLocalFormSource } from "@/lib/local-form-options";
 import { saveGuestBookingSession, stayHref } from "@/components/customer/bookingSession";
+import {
+  EMAIL_OPT_IN_FIELD,
+  EMAIL_OPT_IN_TEXT,
+  SMS_OPT_IN_FIELD,
+  SMS_OPT_IN_TEXT,
+} from "@/lib/marketing-consent";
 
 type LocalFormField = {
   name: string;
@@ -656,6 +662,7 @@ export default function LocalForm({
   existingFiles = [],
   bookingCode = "",
   returnHref = "",
+  showMarketingConsent = false,
 }: {
   formSlug: string;
   schema: LocalFormSchema;
@@ -667,6 +674,7 @@ export default function LocalForm({
   existingFiles?: LocalFormSubmissionFile[];
   bookingCode?: string;
   returnHref?: string;
+  showMarketingConsent?: boolean;
 }) {
   const router = useRouter();
   const fields = Array.isArray(schema.fields) ? schema.fields : [];
@@ -863,6 +871,11 @@ export default function LocalForm({
       }
 
       payload[name] = values[name] ?? "";
+    }
+
+    if (showMarketingConsent) {
+      payload[SMS_OPT_IN_FIELD] = values[SMS_OPT_IN_FIELD] === true;
+      payload[EMAIL_OPT_IN_FIELD] = values[EMAIL_OPT_IN_FIELD] === true;
     }
 
     const normalizedBookingCode = String(bookingCode || "").trim();
@@ -1184,6 +1197,32 @@ export default function LocalForm({
           </FieldShell>
         );
       })}
+
+        {showMarketingConsent ? (
+          <fieldset className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4">
+            <legend className="px-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-muted)]">
+              Stay in touch (optional)
+            </legend>
+            {[
+              { name: SMS_OPT_IN_FIELD, text: SMS_OPT_IN_TEXT },
+              { name: EMAIL_OPT_IN_FIELD, text: EMAIL_OPT_IN_TEXT },
+            ].map((option) => (
+              <label
+                key={option.name}
+                className="flex cursor-pointer items-start gap-3 text-sm text-[var(--color-ink)]"
+              >
+                <input
+                  name={option.name}
+                  type="checkbox"
+                  checked={values[option.name] === true}
+                  onChange={(event) => update(option.name, event.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-[var(--color-border)] accent-[var(--color-accent)]"
+                />
+                <span className="leading-relaxed">{option.text}</span>
+              </label>
+            ))}
+          </fieldset>
+        ) : null}
 
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
