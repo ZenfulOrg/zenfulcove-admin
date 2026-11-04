@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminRequest } from "@/lib/adminAuth";
-import { getAllBookingsInStayWindow, getBookingV2Raw } from "@/lib/lodgify";
+import { getAllBookingsInStayWindow, getBookingV2Raw, listWebhookSubscriptions } from "@/lib/lodgify";
 
 export const maxDuration = 300;
 
@@ -108,7 +108,24 @@ export async function POST(request) {
       rows.push(row);
     }
 
-    return NextResponse.json({ today, totalBookingsInWindow: bookings.length, sources, rows });
+    let webhooks = [];
+    try {
+      const list = await listWebhookSubscriptions();
+      webhooks = (Array.isArray(list) ? list : list?.items || []).map((hook) => {
+        let url = String(hook?.url || hook?.target_url || "");
+        try {
+          const parsed = new URL(url);
+          url = `${parsed.origin}${parsed.pathname}${parsed.search ? " (+query)" : ""}`;
+        } catch {
+          url = url.split("?")[0];
+        }
+        return { event: hook?.event || hook?.type || "", url };
+      });
+    } catch (err) {
+      webhooks = [{ error: err instanceof Error ? err.message.slice(0, 160) : String(err) }];
+    }
+
+    return NextResponse.json({ today, totalBookingsInWindow: bookings.length, sources, webhooks, rows });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
