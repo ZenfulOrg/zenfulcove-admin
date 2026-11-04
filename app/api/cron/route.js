@@ -4,6 +4,7 @@ import { notifyAutomationFailure } from "@/lib/automation-alerts";
 import { sendSms, validateTwilioConfig } from "@/lib/twilio";
 import {
   getConfig,
+  getMarketingOptInLists,
   getEventPopupContactState,
   setEventPopupContactState,
   getEventPopupSmsSent,
@@ -18,6 +19,7 @@ import {
   getAvailability,
   getBookings,
   getAllBookings,
+  getAllBookingsInStayWindow,
   getBookingById,
 } from "@/lib/lodgify";
 import {
@@ -67,7 +69,9 @@ import {
   upsertContactsToList,
   listAllContactLists,
   validateContactCustomFieldKeys,
+  getContactIdentifiersByEmails,
 } from "@/lib/sendgrid";
+import { contactRejectReason } from "@/lib/contact-quality";
 
 const DRY_RUN_ENV = process.env.CRON_DRY_RUN === "true";
 const DELIVERY_LOG_KEYS = [
@@ -3205,16 +3209,7 @@ async function runLodgifyClientSync(automationConfig, dryRunOverride) {
 
   let bookings = [];
   try {
-    bookings = await getAllBookings({
-      stayFrom: startDate,
-      stayTo: endDate,
-      page: 1,
-      size: 100,
-      includeCount: false,
-      includeTransactions: false,
-      includeExternal: true,
-      includeQuoteDetails: false,
-    });
+    bookings = await getAllBookingsInStayWindow(startDate, endDate);
     logs.push({
       timestamp: new Date().toISOString(),
       automation: "Lodgify Client Sync",
@@ -3270,6 +3265,11 @@ async function runLodgifyClientSync(automationConfig, dryRunOverride) {
       }
     );
 
+    const arrival = toDateOnly(booking?.arrival || booking?.checkIn || booking?.start_date);
+    const cancelled = isCancelledBooking(contact.bookingStatus);
+    merged.stayStarted =
+      Boolean(dedupedContacts.get(contact.email)?.stayStarted) ||
+      (!cancelled && Boolean(arrival) && arrival <= todayCentral());
     dedupedContacts.set(contact.email, merged);
   }
 
@@ -3304,6 +3304,49 @@ async function runLodgifyClientSync(automationConfig, dryRunOverride) {
       });
     });
     return logs;
+  }
+
+  // SendGrid rejects email-only updates for contacts that also carry a
+  // phone_number_id / external_id, so send every existing identifier.
+  try {
+    const identifiers = await getContactIdentifiersByEmails(contactsToSync.map((contact) => contact.email));
+    for (const contact of contactsToSync) Object.assign(contact, identifiers.get(contact.email) || {});
+  } catch (err) {
+    logs.push({
+      timestamp: new Date().toISOString(),
+      automation: "Lodgify Client Sync",
+      property: "—",
+      action: `Could not look up existing SendGrid identifiers (continuing): ${err.message}`,
+      status: "info",
+    });
+  }
+
+  // Guests whose (non-cancelled) stay has started also go to the Email Offers
+  // marketing list, with the same address rules as the Marketing Opt-ins
+  // backfill (no OTA relay / invalid / disposable addresses).
+  try {
+    const { emailListId } = await getMarketingOptInLists();
+    const pastGuests = contactsToSync.filter(
+      (contact) => contact.stayStarted && !contactRejectReason(contact, { trusted: true })
+    );
+    if (emailListId && pastGuests.length > 0) {
+      await upsertContactsToList({ listId: emailListId, contacts: pastGuests, wait: false });
+      logs.push({
+        timestamp: new Date().toISOString(),
+        automation: "Lodgify Client Sync",
+        property: "—",
+        action: `Queued ${pastGuests.length} past guest(s) for the Email Offers list`,
+        status: "success",
+      });
+    }
+  } catch (err) {
+    logs.push({
+      timestamp: new Date().toISOString(),
+      automation: "Lodgify Client Sync",
+      property: "—",
+      action: `Failed to add past guests to Email Offers: ${err.message}`,
+      status: "failed",
+    });
   }
 
   try {
