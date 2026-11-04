@@ -1,4 +1,5 @@
 import {
+  getContactIdentifiersByEmails,
   listCustomFieldDefinitions,
   updateContactCustomFields,
   upsertContactsToList,
@@ -35,11 +36,13 @@ export async function syncMarketingConsentToSendGrid({
   const email = String(contact.email || "").trim().toLowerCase();
   if (!email) return ["skipped: no email on submission"];
 
+  const existingIds = (await getContactIdentifiersByEmails([email])).get(email) || {};
   const sendgridContact = {
     email,
     firstName: contact.firstName,
     lastName: contact.lastName,
     phone: contact.phone,
+    ...existingIds,
   };
 
   if (consent.sms.optedIn) {
@@ -56,7 +59,7 @@ export async function syncMarketingConsentToSendGrid({
         if (field.name === SMS_CONSENT_AT_FIELD_NAME) customFields[field.id] = consent.recordedAt;
       }
       if (Object.keys(customFields).length > 0) {
-        await updateContactCustomFields({ email, customFields });
+        await updateContactCustomFields({ email, customFields, identifiers: existingIds });
         results.push("SMS consent custom fields updated");
       }
     }
