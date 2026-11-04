@@ -3165,7 +3165,7 @@ async function runJotformLocalFormImport(automationConfig, dryRunOverride) {
   return logs;
 }
 
-async function runLodgifyClientSync(automationConfig, dryRunOverride) {
+export async function runLodgifyClientSync(automationConfig, dryRunOverride) {
   const isDryRun = dryRunOverride !== undefined ? dryRunOverride : DRY_RUN_ENV;
   const logs = [];
   const config = automationConfig.lodgifyClientSync || {};
