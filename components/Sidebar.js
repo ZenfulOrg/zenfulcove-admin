@@ -154,6 +154,26 @@ const CATEGORIES = [
     ),
   },
   {
+    id: "marketing-opt-ins",
+    label: "Marketing Opt-ins",
+    href: "/admin/marketing-opt-ins",
+    icon: (
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M4 4h16v12H5.17L4 17.17V4z" />
+        <path d="M8 9l2.5 2.5L16 7" />
+      </svg>
+    ),
+  },
+  {
     id: "promotions",
     label: "One-Off Promotions",
     icon: (
