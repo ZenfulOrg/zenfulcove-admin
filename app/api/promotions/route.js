@@ -22,6 +22,7 @@ export async function POST(request) {
       channel: body?.channel,
       templateId: body?.templateId,
       smsBody: body?.smsBody,
+      smsMediaUrl: body?.smsMediaUrl,
       testDestinations: body?.testDestinations,
       audienceFilter: body?.audienceFilter,
     });
