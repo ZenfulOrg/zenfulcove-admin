@@ -96,6 +96,8 @@ export default function OneOffPromotionsPanel({ onComplete }) {
   const [channel, setChannel] = useState("sms");
   const [templateId, setTemplateId] = useState("");
   const [smsBody, setSmsBody] = useState("");
+  const [smsMediaUrl, setSmsMediaUrl] = useState("");
+  const [smsStatus, setSmsStatus] = useState("");
   const [audienceFilter, setAudienceFilter] = useState("all");
   const [templateName, setTemplateName] = useState("");
   const [templateSubject, setTemplateSubject] = useState("");
@@ -144,6 +146,7 @@ export default function OneOffPromotionsPanel({ onComplete }) {
           channel,
           templateId,
           smsBody,
+          smsMediaUrl,
           audienceFilter,
           testDestinations: {
             email: testEmail,
@@ -186,6 +189,23 @@ export default function OneOffPromotionsPanel({ onComplete }) {
       setTemplateStatus(err.message || "Template create failed.");
     } finally {
       setCreatingTemplate(false);
+    }
+  }
+
+  async function checkLastSmsStatus() {
+    const sid = String(result?.logs?.map((log) => log.action).join(" ") || "").match(/sid: ((?:SM|MM)[a-f0-9]{32})/i)?.[1];
+    if (!sid) {
+      setSmsStatus("No text message ID in the latest result.");
+      return;
+    }
+    setSmsStatus("Checking…");
+    try {
+      const res = await fetch(`/api/messages/status?sid=${encodeURIComponent(sid)}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Status lookup failed.");
+      setSmsStatus(`${data.status}${data.errorCode ? ` (Twilio ${data.errorCode}: ${data.errorMessage || ""})` : ""} | media: ${data.numMedia} | segments: ${data.numSegments}`);
+    } catch (err) {
+      setSmsStatus(err.message || "Status lookup failed.");
     }
   }
 
@@ -331,6 +351,16 @@ export default function OneOffPromotionsPanel({ onComplete }) {
               onChange={(e) => setSmsBody(e.target.value)}
               className="border border-sand rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-grove/30"
             />
+            <FieldLabel>Photo URL (optional, sends as MMS)</FieldLabel>
+            <input
+              type="url"
+              value={smsMediaUrl}
+              onChange={(e) => setSmsMediaUrl(e.target.value)}
+              placeholder="https://www.zenfulcove.com/images/...jpg"
+              aria-label="SMS photo URL"
+              className="border border-sand rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-grove/30"
+            />
+            <p className="text-xs text-forest/40 mt-1">JPG or PNG under 500 KB. Photo texts cost more than plain texts.</p>
           </div>
         ) : null}
 
@@ -424,6 +454,18 @@ export default function OneOffPromotionsPanel({ onComplete }) {
             ) : null}
 
             <ResultLog result={result} />
+            {smsSelected && result ? (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={checkLastSmsStatus}
+                  className="rounded-full border border-grove/30 px-3 py-1.5 text-xs font-medium text-grove hover:border-grove"
+                >
+                  Check text delivery
+                </button>
+                {smsStatus ? <span className="text-xs text-forest/60">{smsStatus}</span> : null}
+              </div>
+            ) : null}
 
             <div className="flex justify-end gap-3">
               <button
