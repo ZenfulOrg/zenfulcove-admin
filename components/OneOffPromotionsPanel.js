@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SendGridListPicker from "./SendGridListPicker";
 import { PROMOTION_CONTACT_LISTS } from "@/lib/promotion-lists";
 
@@ -98,6 +98,65 @@ export default function OneOffPromotionsPanel({ onComplete }) {
   const [smsBody, setSmsBody] = useState("");
   const [smsMediaUrl, setSmsMediaUrl] = useState("");
   const [smsStatus, setSmsStatus] = useState("");
+  const [scheduleAt, setScheduleAt] = useState("");
+  const [scheduleLabel, setScheduleLabel] = useState("");
+  const [scheduleStatus, setScheduleStatus] = useState("");
+  const [scheduled, setScheduled] = useState([]);
+
+  async function loadScheduled() {
+    try {
+      const res = await fetch("/api/promotions/schedule", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) setScheduled(Array.isArray(data.items) ? data.items : []);
+    } catch {
+      /* list is informational */
+    }
+  }
+
+  useEffect(() => {
+    loadScheduled();
+  }, []);
+
+  async function schedulePromotion() {
+    const when = new Date(scheduleAt);
+    if (!scheduleAt || Number.isNaN(when.getTime())) {
+      setScheduleStatus("Choose a send date and time.");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Schedule this ${channel} promotion to ${selectedListName || "the selected list"} (${audienceFilter}) for ${when.toLocaleString()}?`
+    );
+    if (!confirmed) return;
+    setScheduleStatus("Scheduling…");
+    try {
+      const res = await fetch("/api/promotions/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sendAt: when.toISOString(),
+          label: scheduleLabel,
+          lists: [selectedListId],
+          channel,
+          templateId,
+          smsBody,
+          smsMediaUrl,
+          audienceFilter,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Scheduling failed.");
+      setScheduleStatus(`Scheduled for ${new Date(data.job.sendAt).toLocaleString()}`);
+      loadScheduled();
+    } catch (err) {
+      setScheduleStatus(err.message || "Scheduling failed.");
+    }
+  }
+
+  async function cancelScheduled(id) {
+    if (!window.confirm("Cancel this scheduled promotion?")) return;
+    await fetch(`/api/promotions/schedule?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    loadScheduled();
+  }
   const [audienceFilter, setAudienceFilter] = useState("all");
   const [templateName, setTemplateName] = useState("");
   const [templateSubject, setTemplateSubject] = useState("");
@@ -374,6 +433,60 @@ export default function OneOffPromotionsPanel({ onComplete }) {
             Test / Dry Run
           </button>
         </div>
+      </section>
+
+      <section className="bg-white rounded-xl shadow-sm border border-sand p-5 space-y-4">
+        <h3 className="text-lg font-medium text-forest">Schedule this promotion</h3>
+        <p className="text-xs text-forest/50">
+          Uses the list, past-guest filter, channel and message above. Sends automatically at the chosen time (checked every 5 minutes, your local time).
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <input
+            type="datetime-local"
+            value={scheduleAt}
+            onChange={(e) => setScheduleAt(e.target.value)}
+            aria-label="Scheduled send time"
+            className="border border-sand rounded-lg px-3 py-2 text-sm w-full"
+          />
+          <input
+            type="text"
+            value={scheduleLabel}
+            onChange={(e) => setScheduleLabel(e.target.value)}
+            placeholder="Label (e.g. Holiday email - past guests)"
+            aria-label="Scheduled send label"
+            className="border border-sand rounded-lg px-3 py-2 text-sm w-full"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={Boolean(running) || !canSubmit || !scheduleAt}
+            onClick={schedulePromotion}
+            className="rounded-full bg-grove px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            Schedule send
+          </button>
+          {scheduleStatus ? <span className="text-xs text-forest/60">{scheduleStatus}</span> : null}
+        </div>
+        {scheduled.length ? (
+          <ul className="divide-y divide-sand text-sm">
+            {scheduled.map((item) => (
+              <li key={item.id} className="flex items-center justify-between gap-3 py-2">
+                <span className="text-forest/80">
+                  <span className="font-medium">{item.label || item.payload?.channel}</span> · {new Date(item.sendAt).toLocaleString()} ·{" "}
+                  {item.payload?.channel} · {item.payload?.audienceFilter || "all"} ·{" "}
+                  <span className="uppercase text-xs">{item.status}</span>
+                  {item.summary ? ` · sent ${item.summary.sent}, skipped ${item.summary.skipped}, failed ${item.summary.failed}` : ""}
+                </span>
+                {item.status === "pending" ? (
+                  <button type="button" onClick={() => cancelScheduled(item.id)} className="text-xs text-red-600 hover:underline">
+                    Cancel
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </section>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
