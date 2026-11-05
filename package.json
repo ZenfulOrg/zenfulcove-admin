@@ -16,7 +16,8 @@
     "test:promotion": "node --env-file=.env.local scripts/test-promotion.js",
     "run:popup-sms": "node --env-file=.env.local scripts/run-popup-sms-live.js",
     "test:event-popup-sms": "node --env-file=.env.local scripts/test-event-popup-sms.js",
-    "test:spa-slots": "npx --yes tsx scripts/test-spa-slots.ts"
+    "test:spa-slots": "npx --yes tsx scripts/test-spa-slots.ts",
+    "test:meta-audiences": "node scripts/test-meta-audiences.mjs"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
