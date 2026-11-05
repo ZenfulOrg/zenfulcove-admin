@@ -123,10 +123,6 @@ export default function OneOffPromotionsPanel({ onComplete }) {
       setScheduleStatus("Choose a send date and time.");
       return;
     }
-    const confirmed = window.confirm(
-      `Schedule this ${channel} promotion to ${selectedListName || "the selected list"} (${audienceFilter}) for ${when.toLocaleString()}?`
-    );
-    if (!confirmed) return;
     setScheduleStatus("Scheduling…");
     try {
       const res = await fetch("/api/promotions/schedule", {
