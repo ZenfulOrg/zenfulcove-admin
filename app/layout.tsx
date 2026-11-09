@@ -18,6 +18,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Zenfulcove Glamping",
   description: "Zenfulcove Glamping guest booking and staff operations.",
+  // stay.zenfulcove.com is the guest portal and staff app, not a marketing
+  // site. Keep it out of search so it never competes with zenfulcove.com.
+  // "follow" still lets crawlers pass through links back to the main site.
+  robots: { index: false, follow: true },
 };
 
 export const viewport: Viewport = {

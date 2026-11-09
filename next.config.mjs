@@ -27,6 +27,12 @@ const nextConfig = {
             key: "X-Frame-Options",
             value: "DENY",
           },
+          {
+            // Also covers API responses, PDFs and images, which carry no
+            // <meta name="robots">. See app/layout.tsx.
+            key: "X-Robots-Tag",
+            value: "noindex",
+          },
         ],
       },
     ];
