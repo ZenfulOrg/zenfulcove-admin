@@ -62,11 +62,31 @@ function evaluate(booking, now = Date.now()) {
   return "PASS";
 }
 
+// Click-ID capture counts come from the website's database (zenfulcove-site
+// /api/marketing/attribution-stats), which this app cannot reach directly.
+async function getClickIdCapture(days = 30) {
+  const token = process.env.ATTRIBUTION_STATS_TOKEN || "";
+  if (!token) return { error: "ATTRIBUTION_STATS_TOKEN not set" };
+  const base = process.env.SITE_BASE_URL || "https://www.zenfulcove.com";
+  try {
+    const res = await fetch(`${base}/api/marketing/attribution-stats?days=${days}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return { error: `site returned ${res.status}` };
+    return await res.json();
+  } catch (err) {
+    return { error: err instanceof Error ? err.message.slice(0, 160) : String(err) };
+  }
+}
+
 export async function POST(request) {
   const unauthorized = await requireAdminRequest(request);
   if (unauthorized) return unauthorized;
   try {
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
+    const clickIdCapturePromise = getClickIdCapture(30);
     const bookings = await getAllBookingsInStayWindow(addDays(today, -60), addDays(today, 500), {
       includeTransactions: true,
     });
@@ -125,7 +145,8 @@ export async function POST(request) {
       webhooks = [{ error: err instanceof Error ? err.message.slice(0, 160) : String(err) }];
     }
 
-    return NextResponse.json({ today, totalBookingsInWindow: bookings.length, sources, webhooks, rows });
+    const clickIdCapture = await clickIdCapturePromise;
+    return NextResponse.json({ today, totalBookingsInWindow: bookings.length, sources, webhooks, clickIdCapture, rows });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
