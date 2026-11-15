@@ -1206,7 +1206,17 @@ export async function runAccessCodeRelease(automationConfig, dryRunOverride, opt
       continue;
     }
 
-    if (options.delayedOnly === true && !delayedAccess) {
+    const existingRelease = await getAccessCodeRelease(bookingId);
+
+    // A guest who already got the no-code check-in message is still owed a
+    // day-of code even if their unit has since moved off the delayed list
+    // (e.g. Desert Rose switching from a lockbox to a Jervis smart lock).
+    const awaitingDayOfCode = Boolean(
+      existingRelease?.raw_source?.checkinInfoSentAt &&
+        !existingRelease?.sent_at &&
+        existingRelease?.status !== "sent"
+    );
+    if (options.delayedOnly === true && !delayedAccess && !awaitingDayOfCode) {
       logs.push({
         timestamp: new Date().toISOString(),
         automation: automationName,
@@ -1217,7 +1227,6 @@ export async function runAccessCodeRelease(automationConfig, dryRunOverride, opt
       continue;
     }
 
-    const existingRelease = await getAccessCodeRelease(bookingId);
     if (existingRelease?.sent_at || existingRelease?.status === "sent") {
       logs.push({
         timestamp: new Date().toISOString(),

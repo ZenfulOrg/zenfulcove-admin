@@ -13,7 +13,7 @@ configuration change.
 | 1 day before arrival | Form reminder 2 | Admin automation | Repeat only if incomplete. Do not disclose the access code. |
 | Arrival day | Final form reminder | Admin automation | Send only if incomplete and provide a clear support path. |
 | Day before arrival at 3:00 PM Central | Check-in information / access code | Admin automation | Release only after the form gate passes. |
-| Arrival day at 11:00 AM Central | Delayed-unit access code | Admin automation | Applies to Doodle House and Desert Rose when configured; release only after the form gate passes. |
+| Arrival day at 11:00 AM Central | Delayed-unit access code | Admin automation | Applies to Doodle House (static lockbox code) when configured; release only after the form gate passes. |
 | Before checkout | Checkout reminder | Lodgify dashboard | Use the canonical 11:00 AM checkout time and concise departure instructions. |
 
 ## Code-managed automations
@@ -49,7 +49,7 @@ the previous state can be reconstructed.
    mappings, Central-time schedules, and delivery-channel fallbacks.
 2. Run waiver and access-code tests in dry-run mode. Confirm that complete and
    incomplete form states take opposite branches.
-3. Verify Doodle House and Desert Rose use the delayed schedule while other
+3. Verify Doodle House uses the delayed schedule while other
    units use the standard schedule.
 4. Use one controlled future reservation belonging to the team. Complete its
    form, confirm the correct Jervis code and validity window, then send one test
