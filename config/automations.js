@@ -50,6 +50,7 @@ export const automationConfig = {
   accessCodeRelease: {
     enabled: false,
     waiverLodgifyScheduleVersion: 2,
+    accessCodeUnitsVersion: 2, // 2 = Desert Rose on a Jervis smart lock (see lib/kv.js migration).
     deliveryChannel: "lodgify",
     releaseHourCentral: 15,
     releaseMinuteCentral: 0,
@@ -57,7 +58,7 @@ export const automationConfig = {
     immediateReleaseDaysBeforeCheckin: 1, // Today releases immediately. Tomorrow releases immediately after the 3 PM release threshold.
     dayOfCodeReleaseHourCentral: 11,
     dayOfCodeReleaseMinuteCentral: 0,
-    delayedAccessCodePropertyNames: ["Doodle House", "Desert Rose"],
+    delayedAccessCodePropertyNames: ["Doodle House"], // Static lockbox-code units. Desert Rose moved to a Jervis smart lock in Nov 2026.
     delayedAccessCodePropertyIds: [],
     sendgridTemplateId: "", // Legacy only. Access-code delivery now posts to Lodgify booking messages.
     missingFormTemplateId: "", // Legacy only. Missing-form delivery now posts to Lodgify booking messages.

@@ -11,7 +11,7 @@ const KNOWN_UNITS = [
   { id: "754651", name: "Doodle House" },
 ];
 
-const DEFAULT_DELAYED_ACCESS_PROPERTY_NAMES = ["Doodle House", "Desert Rose"];
+const DEFAULT_DELAYED_ACCESS_PROPERTY_NAMES = ["Doodle House"];
 
 const DEFAULT_EMAILS = [
   {
@@ -1192,7 +1192,7 @@ export default function WaiverPanel({
 
       <CollapsibleSection
         title="Access code release"
-        description="Uses Lodgify booking-thread messages for gated access-code release. Normal properties release codes at 3 PM Central the day before check-in. Doodle House and Desert Rose send no-code check-in info then, and a code-only message at 11 AM on check-in day."
+        description="Uses Lodgify booking-thread messages for gated access-code release. Normal properties release codes at 3 PM Central the day before check-in. Doodle House sends no-code check-in info then, and a code-only message at 11 AM on check-in day."
         badge={codeRelease.enabled ? "Enabled" : "Disabled"}
         open={accessOpen}
         onToggle={() => setAccessOpen((value) => !value)}
@@ -1512,7 +1512,7 @@ export default function WaiverPanel({
                 <p className="mt-1 text-sm leading-relaxed text-forest/60">
                   {testMode === TEST_MODE_REMINDER
                     ? "Sample flow renders fake booked, completed-form, Open, and Cancelled reminder outcomes without sending. Dry run checks real upcoming Lodgify bookings without posting or emailing. A live reminder test requires a Lodgify booking ID, sends a test-prefixed Lodgify message, and does not mark the reminder as sent."
-                    : "Sample flow renders fake booked, missing-form, Open, and Cancelled bookings without sending, so the template variables and status guards can be checked together. For Doodle House and Desert Rose it also shows both the no-code welcome and code-only message. Dry run checks real upcoming Lodgify bookings without posting or emailing. A live test requires a Lodgify booking ID."}
+                    : "Sample flow renders fake booked, missing-form, Open, and Cancelled bookings without sending, so the template variables and status guards can be checked together. For Doodle House it also shows both the no-code welcome and code-only message. Dry run checks real upcoming Lodgify bookings without posting or emailing. A live test requires a Lodgify booking ID."}
                 </p>
               </div>
               <button
