@@ -100,6 +100,15 @@ export async function GET(request) {
             keys: Object.keys(live || {}),
             pincode: liveCode,
             matchesStored: liveCode === row.access_code,
+            phoneLast4IsPincode: Boolean(
+              liveCode &&
+                String(live?.phone || "").replace(/\D/g, "").slice(-4) === liveCode
+            ),
+            hasPhone: Boolean(String(live?.phone || "").trim()),
+            reservationSource: live?.source,
+            checkedIn: live?.checked_in,
+            accessStart: live?.access_start_time,
+            accessEnd: live?.access_end_time,
             ...pick(live, [
               "property_id",
               "propertyId",
