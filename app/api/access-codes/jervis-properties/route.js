@@ -14,7 +14,7 @@ const UNITS = [
 ];
 
 export async function GET(request) {
-  const unauthorized = await requireAdminRequest(request);
+  const unauthorized = await requireAdminRequest(request, { agentRead: true });
   if (unauthorized) return unauthorized;
 
   try {

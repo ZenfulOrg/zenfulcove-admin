@@ -135,12 +135,13 @@ async function formIsCompleteForBooking(automationConfig, bookingId) {
 }
 
 export async function POST(request) {
-  const unauthorized = await requireAdminRequest(request);
+  // Peek at the body so the read-only agent key is allowed for dry runs only.
+  const body = await request.clone().json().catch(() => ({}));
+  const dryRun = body?.dryRun !== false;
+  const unauthorized = await requireAdminRequest(request, { agentRead: dryRun });
   if (unauthorized) return unauthorized;
 
   try {
-    const body = await request.json();
-    const dryRun = body?.dryRun !== false;
     const sample = Boolean(body?.sample);
     const bookingId = clean(body?.bookingId);
     const baseConfig = await getConfig();

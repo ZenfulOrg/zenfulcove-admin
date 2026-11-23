@@ -5,7 +5,7 @@ import { listActivityLogs } from "@/lib/activity-log";
 const DEFAULT_LIMIT = 10;
 
 export async function GET(request) {
-  const unauthorized = await requireAdminRequest(request);
+  const unauthorized = await requireAdminRequest(request, { agentRead: true });
   if (unauthorized) return unauthorized;
 
   const { searchParams } = new URL(request.url);
