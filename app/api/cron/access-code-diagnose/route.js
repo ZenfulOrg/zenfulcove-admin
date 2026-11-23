@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { CRON_SECRET } from "@/config/keys";
+import { isAgentReadRequest } from "@/lib/adminAuth";
 import { getConfig } from "@/lib/kv";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import {
@@ -28,7 +29,10 @@ function pick(obj, keys) {
 }
 
 export async function GET(request) {
-  if (request.headers.get("authorization") !== `Bearer ${CRON_SECRET}`) {
+  if (
+    request.headers.get("authorization") !== `Bearer ${CRON_SECRET}` &&
+    !isAgentReadRequest(request)
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
